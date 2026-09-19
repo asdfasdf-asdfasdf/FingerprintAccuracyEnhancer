@@ -21,6 +21,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -28,6 +29,8 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.core.view.WindowCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -67,6 +70,13 @@ private const val KEY_SETUP_COMPLETE = "setup_complete"
 private const val ASSISTANT_KEY = "assistant"
 private const val RESTORE_DELAY_MS = 700L
 
+// Android 16 QPR2 / minor SDK 36.1. Android uses SDK_INT_FULL because SDK_INT
+// remains 36 for Android 16 minor releases.
+private const val MIN_ANDROID_SDK_FULL = 3_600_001
+
+// Samsung's ro.build.version.oneui convention: One UI 8.5 is 80500.
+private const val MIN_ONE_UI_VERSION = 80_500
+
 class MainActivity : ComponentActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences(PREFS, MODE_PRIVATE) }
@@ -75,11 +85,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // RootActivityLauncher uses the same library so hidden SearchManager APIs can be used.
+        if (!isSupportedPlatform()) {
+            applySystemBarAppearance(isDark = false)
+            setContent {
+                UnsupportedPlatformScreen()
+            }
+            return
+        }
+
         try {
             HiddenApiBypass.setHiddenApiExemptions("L")
         } catch (_: Throwable) {
         }
+
+        applySystemBarAppearance()
 
         setContent {
             AppTheme {
@@ -95,8 +114,42 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // If Shizuku was started from the first-run dialog, retry the one automatic request.
-        mainHandler.post { maybeSetupShizukuOnFirstRun() }
+        if (isSupportedPlatform()) {
+            mainHandler.post { maybeSetupShizukuOnFirstRun() }
+        }
+    }
+
+    private fun isSupportedPlatform(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return false
+        if (Build.VERSION.SDK_INT_FULL < MIN_ANDROID_SDK_FULL) return false
+        if (!Build.MANUFACTURER.equals("samsung", ignoreCase = true)) return false
+
+        val oneUi = getOneUiVersion()
+        return oneUi >= MIN_ONE_UI_VERSION
+    }
+
+    private fun getOneUiVersion(): Int {
+        return try {
+            Runtime.getRuntime()
+                .exec(arrayOf("getprop", "ro.build.version.oneui"))
+                .inputStream
+                .bufferedReader()
+                .use { it.readText().trim().toIntOrNull() ?: 0 }
+        } catch (_: Throwable) {
+            0
+        }
+    }
+
+    private fun applySystemBarAppearance(isDark: Boolean =
+        (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+    ) {
+        val barColor = if (isDark) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+        window.statusBarColor = barColor
+        window.navigationBarColor = barColor
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.isAppearanceLightStatusBars = !isDark
+        controller.isAppearanceLightNavigationBars = !isDark
     }
 
     private fun maybeSetupShizukuOnFirstRun() {
@@ -327,7 +380,26 @@ class MainActivity : ComponentActivity() {
             component = ComponentName(SETTINGS_PACKAGE, SETTINGS_ACTIVITY)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        startSafely(intent)
+
+        if (Shizuku.pingBinder() && hasShizukuPermission()) {
+            Thread {
+                try {
+                    val process = Shizuku.newProcess(
+                        arrayOf("am", "start", "-n", "$SETTINGS_PACKAGE/$SETTINGS_ACTIVITY"),
+                        null,
+                        null
+                    )
+                    val code = process.waitFor()
+                    if (code != 0) {
+                        postToast("지문 인식 설정을 열 수 없습니다. (code $code)")
+                    }
+                } catch (e: Throwable) {
+                    postToast("설정 실행 실패: ${rootCause(e).javaClass.simpleName}")
+                }
+            }.start()
+        } else {
+            startSafely(intent)
+        }
     }
 
     private fun startSafely(intent: Intent) {
@@ -343,12 +415,74 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
-    val colorScheme = darkColorScheme(
-        primary = Color(0xFF4A90FF),
-        background = Color.Black,
-        surface = Color(0xFF1C1C1E)
-    )
+    val dark = isSystemInDarkTheme()
+    val colorScheme = if (dark) {
+        darkColorScheme(
+            primary = Color(0xFF4A90FF),
+            background = Color.Black,
+            surface = Color(0xFF1C1C1E),
+            onBackground = Color.White,
+            onSurface = Color.White,
+            onSurfaceVariant = Color(0xFFB9B9BE),
+            outline = Color(0xFF3A3A3C)
+        )
+    } else {
+        lightColorScheme(
+            primary = Color(0xFF2F80FF),
+            background = Color.White,
+            surface = Color(0xFFF2F2F7),
+            onBackground = Color(0xFF111111),
+            onSurface = Color(0xFF111111),
+            onSurfaceVariant = Color(0xFF6B6B70),
+            outline = Color(0xFFD1D1D6)
+        )
+    }
+
     MaterialTheme(colorScheme = colorScheme, content = content)
+}
+
+@Composable
+fun UnsupportedPlatformScreen() {
+    val dark = isSystemInDarkTheme()
+    val background = if (dark) Color.Black else Color.White
+    val text = if (dark) Color.White else Color(0xFF111111)
+    val secondary = if (dark) Color(0xFFB9B9BE) else Color(0xFF6B6B70)
+
+    Surface(modifier = Modifier.fillMaxSize(), color = background) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(28.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Fingerprint,
+                contentDescription = null,
+                tint = if (dark) Color.White else Color.Black,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = "지원되지 않는 기기 또는 소프트웨어",
+                color = text,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "One UI 8.5 (Android 16.1) 이상에서만 사용할 수 있습니다.",
+                color = secondary,
+                fontSize = 15.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Samsung Galaxy 전용",
+                color = secondary,
+                fontSize = 14.sp
+            )
+        }
+    }
 }
 
 @Composable
@@ -356,58 +490,76 @@ fun FingerprintLauncherScreen(
     onEnroll: (Int) -> Unit,
     onOpenSettings: () -> Unit
 ) {
+    val dark = isSystemInDarkTheme()
+    val background = if (dark) Color.Black else Color.White
+    val card = if (dark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+    val text = if (dark) Color.White else Color(0xFF111111)
+    val icon = if (dark) Color.White else Color.Black
+    val secondary = if (dark) Color(0xFF8E8E93) else Color(0xFF8E8E93)
+    val divider = if (dark) Color(0xFF2C2C2E) else Color(0xFFD1D1D6)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(background)
             .padding(horizontal = 20.dp)
     ) {
         Spacer(modifier = Modifier.height(28.dp))
 
         Text(
             text = "지문인식 정확도 향상",
-            color = Color.White,
+            color = text,
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        SettingsCard {
-            SettingsRow(label = "지문 1", onClick = { onEnroll(1) })
-            RowDivider()
-            SettingsRow(label = "지문 2", onClick = { onEnroll(2) })
-            RowDivider()
-            SettingsRow(label = "지문 3", onClick = { onEnroll(3) })
-            RowDivider()
-            SettingsRow(label = "지문 4", onClick = { onEnroll(4) }, isLast = true)
+        SettingsCard(card) {
+            SettingsRow("지문 1", { onEnroll(1) }, text, icon, secondary)
+            RowDivider(divider)
+            SettingsRow("지문 2", { onEnroll(2) }, text, icon, secondary)
+            RowDivider(divider)
+            SettingsRow("지문 3", { onEnroll(3) }, text, icon, secondary)
+            RowDivider(divider)
+            SettingsRow("지문 4", { onEnroll(4) }, text, icon, secondary, true)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        SettingsCard {
+        SettingsCard(card) {
             SettingsRow(
-                label = "지문 인식 설정 열기",
-                onClick = onOpenSettings,
-                isLast = true
+                "지문 인식 설정 열기",
+                onOpenSettings,
+                text,
+                icon,
+                secondary,
+                true
             )
         }
     }
 }
 
 @Composable
-fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+fun SettingsCard(cardColor: Color, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF1C1C1E)
+        color = cardColor
     ) {
         Column(content = content)
     }
 }
 
 @Composable
-fun SettingsRow(label: String, onClick: () -> Unit, isLast: Boolean = false) {
+fun SettingsRow(
+    label: String,
+    onClick: () -> Unit,
+    textColor: Color,
+    iconColor: Color,
+    arrowColor: Color,
+    isLast: Boolean = false
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -418,30 +570,29 @@ fun SettingsRow(label: String, onClick: () -> Unit, isLast: Boolean = false) {
         Icon(
             imageVector = Icons.Filled.Fingerprint,
             contentDescription = null,
-            tint = Color(0xFF4A90FF),
+            tint = iconColor,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = label,
-            color = Color.White,
+            color = textColor,
             fontSize = 17.sp,
-            fontWeight = FontWeight.Normal,
             modifier = Modifier.weight(1f)
         )
         Icon(
             imageVector = Icons.Filled.ChevronRight,
             contentDescription = null,
-            tint = Color(0xFF6B6B6E),
+            tint = arrowColor,
             modifier = Modifier.size(22.dp)
         )
     }
 }
 
 @Composable
-fun RowDivider() {
+fun RowDivider(dividerColor: Color) {
     HorizontalDivider(
-        color = Color(0xFF2C2C2E),
+        color = dividerColor,
         thickness = 1.dp,
         modifier = Modifier.padding(start = 60.dp)
     )
