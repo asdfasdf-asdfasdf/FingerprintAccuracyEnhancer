@@ -12,6 +12,7 @@ One UI 8.5에서 기본 설정 화면에서 제공되지 않는 지문인식 정
 
 - 지문인식 정확도 설정 바로가기
 - 지문 인식 설정 바로가기
+- 지문 1~4에 `selected_id` 1~4를 전달하는 바로가기
 - Shizuku를 이용한 필요한 권한 처리 지원
 - 실행에 사용하는 `assistant` Secure Setting은 실행 전에 원래 값을 저장하고, 실행 후 복원합니다.
 - 시스템 다크/라이트 모드에 맞춰 UI와 상태 표시줄을 전환합니다.
@@ -30,6 +31,14 @@ Android의 `SDK_INT`는 Android 16의 마이너 릴리스에서도 36으로 유�
 첫 실행 시 필요한 경우 Shizuku 권한을 한 번 요청합니다. 권한이 승인되면 필요한 설정 권한을 처리하고, 이후에는 같은 권한을 반복해서 요청하지 않도록 합니다.
 
 Shizuku는 별도로 설치 및 활성화되어 있어야 합니다.
+
+## 개발 환경
+
+- Android Gradle Plugin 8.13.0
+- Gradle 8.13
+- JDK 17
+- compileSdk 36
+- 앱 실행은 Android 16.1 / One UI 8.5 이상으로 제한됩니다.
 
 ## 빌드
 
@@ -67,3 +76,8 @@ AI 도구의 사용은 해당 회사의 후원, 인증, 협력 또는 공식적�
 
 **Project:** FingerprintAccuracyEnhancer  
 **Package:** `com.userapp.fplauncher`
+
+
+## 테마
+
+앱 내부 UI는 시스템 다크/라이트 모드를 따라가며, XML 루트 테마는 API 21+에서 제공되는 framework `Theme.Material.Light.NoActionBar`를 사용합니다.
