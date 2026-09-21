@@ -13,12 +13,12 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.userapp.fplauncher"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.userapp.fplauncher"
-        minSdk = 36
-        targetSdk = 36
+        minSdk = 26
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }

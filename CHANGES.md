@@ -1,10 +1,7 @@
-# 공개용 정리
+# 이번 정리 내용
 
-- 지원 환경을 Samsung Galaxy + One UI 8.5 / Android 16.1 이상으로 제한
-- `SDK_INT_FULL` 기반 Android 16.1 최소 버전 검사 추가
-- Samsung `ro.build.version.oneui` 기반 One UI 8.5 검사 추가
-- 미지원 환경 안내 화면 추가
-- 시스템 다크/라이트 모드 및 상태 표시줄 색상 동기화
-- 지문인식 설정 열기를 Shizuku 경유 우선으로 변경
-- Release keystore 설정 및 비밀정보 `.gitignore` 유지
-- AI 사용 고지와 third-party / upstream 고지 정리
+- 릴리즈 서명 설정 지원 추가 (`keystore.properties`)
+- 서명키/비밀번호 파일이 GitHub에 올라가지 않도록 `.gitignore` 보강
+- `keystore.properties.example` 추가
+- 직접 수정할 수 있는 앱 설명 파일 `APP-DESCRIPTION.md` 추가
+- README에 사용자 수정 영역과 릴리즈 빌드 안내 추가

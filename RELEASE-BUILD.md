@@ -1,12 +1,5 @@
 # 릴리즈 APK 서명 가이드
 
-## 빌드 도구
-
-이 프로젝트는 Android Gradle Plugin 8.13.0 / Gradle 8.13 / JDK 17을 사용합니다. Android 16 API 36 빌드가 필요하므로 오래된 Android Studio/AGP 조합에서는 D8이 API 36을 지원하지 않는다는 경고가 발생할 수 있습니다.
-
-Android 공식 문서 기준으로 API 36은 AGP 8.9.1 이상, API 36.1은 AGP 8.13.0 이상이 필요합니다. 이 프로젝트는 런타임에서 Android 16.1을 확인하되 compileSdk는 36으로 유지합니다.
-
-
 ## 1. 릴리즈 키 생성
 
 Android Studio의 Terminal 또는 JDK가 설치된 터미널에서 프로젝트 루트로 이동한 뒤 다음 형식으로 실행합니다.
@@ -49,11 +42,3 @@ app\build\outputs\apk\release\app-release.apk
 ## 키 분실 주의
 
 같은 앱의 향후 업데이트를 같은 서명 키로 배포하려면 릴리즈 키를 계속 보관해야 합니다. 키 파일과 비밀번호를 별도로 안전하게 백업하세요.
-
-
-## 공개 배포 전 확인
-
-- `release-key.jks`는 GitHub에 업로드하지 않습니다.
-- `keystore.properties`도 GitHub에 업로드하지 않습니다.
-- APK만 GitHub Releases에 첨부합니다.
-- 앱은 Samsung Galaxy의 One UI 8.5 / Android 16.1 이상에서만 기능 화면을 표시합니다.

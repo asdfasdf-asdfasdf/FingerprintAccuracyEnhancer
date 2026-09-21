@@ -1,0 +1,14 @@
+# Android/Gradle
+.gradle/
+.idea/
+/local.properties
+/build/
+/app/build/
+*.iml
+.DS_Store
+
+# Release signing keys / credentials (NEVER commit these)
+*.jks
+*.keystore
+*.p12
+keystore.properties

@@ -1,4 +1,3 @@
 <resources>
-    <!-- Compose handles the light/dark UI in Kotlin; use a framework theme that is available from API 21+. -->
-    <style name="Theme.FingerprintLauncher" parent="android:style/Theme.Material.Light.NoActionBar" />
+    <style name="Theme.FingerprintLauncher" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

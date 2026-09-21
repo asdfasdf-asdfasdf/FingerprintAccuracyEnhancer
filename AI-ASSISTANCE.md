@@ -1,21 +1,33 @@
 # AI Assistance Notice
 
-This project was developed with assistance from:
+This project was developed with assistance from the following AI tools:
 
 - OpenAI ChatGPT
 - Anthropic Claude
 - Google Gemini
 
-## Use of AI tools
+## How AI was used
 
-AI assistance was used for code drafting and modification, Android and Kotlin debugging, log analysis, research, documentation, and UI development.
+AI assistance was used during development for tasks including:
 
-The project maintainer reviewed, modified, tested, and integrated the resulting work and is responsible for the final contents of the repository.
+- Kotlin / Android code drafting and modification
+- debugging and error analysis
+- analysis of Android logs and framework behavior
+- UI and Jetpack Compose implementation ideas
+- README and open-source documentation drafting
+- explaining Android and Shizuku APIs
 
-## No affiliation
+The project maintainer reviewed and integrated the resulting code and is
+responsible for the final contents of this repository.
 
-Mentioning these services does not imply sponsorship, endorsement, certification, partnership, or other affiliation with OpenAI, Anthropic, or Google.
+## No endorsement or affiliation
 
-## Third-party rights remain applicable
+Mentioning these tools does not imply sponsorship, endorsement, certification,
+a partnership, or other affiliation with OpenAI, Anthropic, or Google.
 
-AI assistance does not replace third-party copyright or license obligations. Source or assets derived from third-party projects remain subject to their applicable licenses. See `THIRD-PARTY-NOTICES.md` and `UPSTREAM-SOURCE-NOTICE.md`.
+## Copyright note
+
+AI assistance does not replace the project's third-party copyright and license
+requirements. Code or assets derived from third-party projects remain subject
+to their applicable licenses and notices. See `THIRD-PARTY-NOTICES.md` and
+`UPSTREAM-SOURCE-NOTICE.md`.
